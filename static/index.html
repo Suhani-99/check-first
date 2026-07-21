@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scam &amp; Manipulation Shield</title>
+<style>
+  :root{
+    --bg:#0f1216; --card:#181d24; --line:#262d37; --ink:#e8ecf1; --muted:#9aa6b2;
+    --accent:#5b8def; --high:#e5484d; --medium:#e0952b; --low:#6e7bd6;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    display:flex; justify-content:center; padding:32px 16px;
+  }
+  .wrap{width:100%; max-width:680px}
+  header{margin-bottom:22px}
+  h1{font-size:22px; margin:0 0 4px; letter-spacing:-.02em}
+  .sub{color:var(--muted); font-size:14px}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:20px}
+  .tabs{display:flex; gap:8px; margin-bottom:16px}
+  .tab{
+    flex:1; padding:10px; text-align:center; border:1px solid var(--line);
+    border-radius:10px; background:transparent; color:var(--muted); cursor:pointer;
+    font-size:14px; font-weight:600; transition:.15s;
+  }
+  .tab.active{background:var(--accent); color:#fff; border-color:var(--accent)}
+  textarea{
+    width:100%; min-height:120px; resize:vertical; padding:12px; border-radius:10px;
+    border:1px solid var(--line); background:#0f1319; color:var(--ink); font:inherit;
+  }
+  .filebox{
+    border:1px dashed var(--line); border-radius:10px; padding:22px; text-align:center; color:var(--muted);
+  }
+  input[type=file]{color:var(--muted); font-size:14px}
+  .btn{
+    margin-top:14px; width:100%; padding:13px; border:0; border-radius:10px;
+    background:var(--accent); color:#fff; font-size:15px; font-weight:700; cursor:pointer;
+  }
+  .btn:disabled{opacity:.5; cursor:default}
+  .hidden{display:none}
+  .result{margin-top:18px}
+  .badge{
+    display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:999px;
+    font-weight:700; font-size:14px; color:#fff;
+  }
+  .badge.high{background:var(--high)} .badge.medium{background:var(--medium)} .badge.low{background:var(--low)}
+  .dot{width:9px;height:9px;border-radius:50%;background:#fff;opacity:.9}
+  .block{margin-top:16px}
+  .label{font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin-bottom:6px}
+  .signals li{margin:4px 0}
+  .signals b{color:var(--ink)} .signals span{color:var(--muted)}
+  .verify{
+    background:#12202e; border:1px solid #1d3b57; border-radius:10px; padding:14px; color:#cfe6ff;
+  }
+  .reminder{margin-top:12px; font-size:13px; color:var(--muted); font-style:italic}
+  .transcript{background:#0f1319; border:1px solid var(--line); border-radius:10px; padding:12px; color:var(--muted); font-size:14px}
+  .meta{margin-top:10px; font-size:12px; color:var(--muted)}
+  .spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;display:inline-block;animation:spin .7s linear infinite;vertical-align:-3px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .err{color:var(--high); margin-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Scam &amp; Manipulation Shield</h1>
+    <div class="sub">Paste a message, or upload a voice note or video. It names the manipulation, explains why in plain language, and always gives you a safe next step. It never tells you a message is genuine.</div>
+  </header>
+
+  <div class="card">
+    <div class="tabs">
+      <button class="tab active" data-type="text">Text</button>
+      <button class="tab" data-type="voice">Voice note</button>
+      <button class="tab" data-type="video">Video</button>
+    </div>
+
+    <div id="text-input">
+      <textarea id="text" placeholder="Paste the suspicious message here..."></textarea>
+    </div>
+
+    <div id="file-input" class="filebox hidden">
+      <p id="file-hint">Upload a voice note (.wav, .mp3, .m4a)</p>
+      <input type="file" id="file" accept="audio/*">
+    </div>
+
+    <button class="btn" id="go">Analyze</button>
+    <div id="error" class="err hidden"></div>
+
+    <div id="result" class="result hidden"></div>
+  </div>
+</div>
+
+<script>
+  let inputType = "text";
+  const tabs = document.querySelectorAll(".tab");
+  const textInput = document.getElementById("text-input");
+  const fileInput = document.getElementById("file-input");
+  const fileEl = document.getElementById("file");
+  const fileHint = document.getElementById("file-hint");
+  const go = document.getElementById("go");
+  const resultEl = document.getElementById("result");
+  const errorEl = document.getElementById("error");
+
+  tabs.forEach(t => t.addEventListener("click", () => {
+    tabs.forEach(x => x.classList.remove("active"));
+    t.classList.add("active");
+    inputType = t.dataset.type;
+    if (inputType === "text") {
+      textInput.classList.remove("hidden");
+      fileInput.classList.add("hidden");
+    } else {
+      textInput.classList.add("hidden");
+      fileInput.classList.remove("hidden");
+      if (inputType === "voice") { fileHint.textContent = "Upload a voice note (.wav, .mp3, .m4a)"; fileEl.accept = "audio/*"; }
+      else { fileHint.textContent = "Upload a short video (.mp4, .mov)"; fileEl.accept = "video/*"; }
+    }
+    resultEl.classList.add("hidden");
+    errorEl.classList.add("hidden");
+  }));
+
+  go.addEventListener("click", async () => {
+    errorEl.classList.add("hidden");
+    resultEl.classList.add("hidden");
+
+    const form = new FormData();
+    form.append("input_type", inputType);
+    if (inputType === "text") {
+      const txt = document.getElementById("text").value.trim();
+      if (!txt) { showError("Please paste a message first."); return; }
+      form.append("text", txt);
+    } else {
+      if (!fileEl.files.length) { showError("Please choose a file first."); return; }
+      form.append("file", fileEl.files[0]);
+    }
+
+    go.disabled = true;
+    go.innerHTML = '<span class="spinner"></span> Analyzing...';
+    try {
+      const res = await fetch("/analyze", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) { showError(data.error || "Something went wrong."); return; }
+      render(data);
+    } catch (e) {
+      showError("Could not reach the server. Is it running?");
+    } finally {
+      go.disabled = false;
+      go.textContent = "Analyze";
+    }
+  });
+
+  function showError(msg){ errorEl.textContent = msg; errorEl.classList.remove("hidden"); }
+
+  function render(data){
+    const r = data.result;
+    const level = (r.risk_level || "medium").toLowerCase();
+    const signals = (r.signals_detected || []).map(s =>
+      `<li><b>${escapeHtml(s.signal)}</b> — <span>${escapeHtml(s.evidence || "")}</span></li>`
+    ).join("");
+
+    let transcriptBlock = "";
+    if (inputType !== "text") {
+      transcriptBlock = `<div class="block"><div class="label">We heard</div>
+        <div class="transcript">${escapeHtml(data.content)}</div></div>`;
+    }
+
+    resultEl.innerHTML = `
+      <div><span class="badge ${level}"><span class="dot"></span>${escapeHtml(r.risk_label || level)}</span></div>
+      ${transcriptBlock}
+      ${signals ? `<div class="block"><div class="label">Manipulation signals</div><ul class="signals">${signals}</ul></div>` : ""}
+      <div class="block"><div class="label">What this means</div><div>${escapeHtml(r.explanation || "")}</div></div>
+      <div class="block"><div class="label">Do this next</div><div class="verify">${escapeHtml(r.verification_step || "")}</div></div>
+      <div class="reminder">${escapeHtml(r.reminder || "")}</div>
+      <div class="meta">Analysed in ${data.latency_seconds}s</div>
+    `;
+    resultEl.classList.remove("hidden");
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+</script>
+</body>
+</html>
