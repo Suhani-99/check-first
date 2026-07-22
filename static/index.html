@@ -57,11 +57,47 @@
     background:#12202e; border:1px solid #1d3b57; border-radius:10px; padding:14px; color:#cfe6ff;
   }
   .reminder{margin-top:12px; font-size:13px; color:var(--muted); font-style:italic}
+  .numbers{display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 4px}
+  .num{display:flex; flex-direction:column; padding:8px 14px; border-radius:9px;
+       background:#241318; border:1px solid #4a2028}
+  .num b{font-size:17px; color:#ff9ba1; letter-spacing:.02em}
+  .num span{font-size:11px; color:var(--muted)}
+  .step{margin-top:10px; padding:13px 15px; border-radius:11px; background:#12202e;
+        border:1px solid #1d3b57; color:#cfe6ff; animation:fade .25s ease}
+  @keyframes fade{from{opacity:0; transform:translateY(-4px)} to{opacity:1; transform:none}}
+  .step.stop{background:#241318; border-color:#4a2028; color:#ffd7da}
+  .step .k{font-size:11px; text-transform:uppercase; letter-spacing:.06em; opacity:.75; margin-bottom:5px}
+  .asks{margin-top:12px}
+  .asks .q{font-size:12px; color:var(--muted); margin-bottom:7px}
+  .chip{display:inline-block; margin:0 7px 7px 0; padding:9px 14px; border-radius:999px;
+        border:1px solid var(--line); background:transparent; color:var(--ink);
+        font:inherit; font-size:13.5px; cursor:pointer; transition:.15s}
+  .chip:hover{border-color:var(--accent); color:#cfe6ff}
+  .chip.used{opacity:.35; pointer-events:none}
   .transcript{background:#0f1319; border:1px solid var(--line); border-radius:10px; padding:12px; color:var(--muted); font-size:14px}
   .meta{margin-top:10px; font-size:12px; color:var(--muted)}
   .spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;display:inline-block;animation:spin .7s linear infinite;vertical-align:-3px}
   @keyframes spin{to{transform:rotate(360deg)}}
   .err{color:var(--high); margin-top:14px}
+  .sw{margin-top:18px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius)}
+  .sw-head{display:flex; align-items:center; gap:10px; padding:16px 20px; cursor:pointer; user-select:none}
+  .sw-head h2{font-size:15px; margin:0; flex:1; letter-spacing:-.01em}
+  .sw-head .tag{font-size:11px; color:var(--muted); border:1px solid var(--line); padding:3px 8px; border-radius:999px}
+  .sw-head .car{color:var(--muted); transition:transform .2s}
+  .sw.open .sw-head .car{transform:rotate(90deg)}
+  .sw-body{display:none; padding:0 20px 20px}
+  .sw.open .sw-body{display:block}
+  .sw-body p{margin:0 0 14px; color:var(--muted); font-size:14.5px; line-height:1.6}
+  .sw-step{display:flex; gap:12px; margin-bottom:14px}
+  .sw-step .n{flex:0 0 22px; height:22px; border-radius:50%; background:var(--accent); color:#fff;
+              font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center}
+  .sw-step .t{flex:1; font-size:14.5px}
+  .sw-step .t b{display:block; margin-bottom:2px}
+  .sw-step .t span{color:var(--muted)}
+  .sw-note{margin-top:6px; padding:12px 14px; border-radius:9px; background:#12202e;
+           border:1px solid #1d3b57; color:#cfe6ff; font-size:13.5px}
+  .sw-warn{margin-top:10px; padding:12px 14px; border-radius:9px; background:#241318;
+           border:1px solid #4a2028; color:#ffd7da; font-size:13.5px}
 </style>
 </head>
 <body>
@@ -92,9 +128,61 @@
 
     <div id="result" class="result hidden"></div>
   </div>
+
+  <div class="sw" id="sw">
+    <div class="sw-head" id="sw-head">
+      <h2>Set up a family safe word</h2>
+      <span class="tag">takes 2 minutes</span>
+      <span class="car">&#9654;</span>
+    </div>
+    <div class="sw-body">
+      <p>A voice can be cloned from a few seconds of a public video. A shared secret cannot.
+         A safe word is one word your family agrees on in advance and asks for whenever
+         someone calls in a panic asking for money. It is the single cheapest protection
+         against voice-clone scams.</p>
+
+      <div class="sw-step"><div class="n">1</div><div class="t">
+        <b>Choose a word nothing can guess</b>
+        <span>Not a pet, child, street, school or birthday &mdash; those sit on social media.
+        Pick something unrelated and vivid, like a random object or an inside joke:
+        "brass kettle", "yellow scooter".</span></div></div>
+
+      <div class="sw-step"><div class="n">2</div><div class="t">
+        <b>Agree it in person, out loud</b>
+        <span>Never send it over WhatsApp, SMS or email &mdash; a hacked account would hand it
+        straight to a scammer. Say it face to face or on a call you started.</span></div></div>
+
+      <div class="sw-step"><div class="n">3</div><div class="t">
+        <b>Keep the circle small</b>
+        <span>Immediate family only. Everyone who might be asked for money in an emergency,
+        and everyone who might be impersonated.</span></div></div>
+
+      <div class="sw-step"><div class="n">4</div><div class="t">
+        <b>Practise using it once</b>
+        <span>Ring each other and ask for it, so it feels normal. In a real panic people
+        forget the plan unless they have used it at least once.</span></div></div>
+
+      <div class="sw-step"><div class="n">5</div><div class="t">
+        <b>Ask for it before money, every time</b>
+        <span>"What's our safe word?" A cloned voice can copy how your child sounds.
+        It cannot know a word that was never spoken online.</span></div></div>
+
+      <div class="sw-warn"><b>If they do not know the safe word:</b> do not send money and do not
+      share any code, however convincing they sound. Hang up and call the person back on the
+      number already saved in your phone.</div>
+
+      <div class="sw-note">We deliberately do not store your safe word. It is never typed into
+      this site, never sent to a server and never saved on this device &mdash; it should exist
+      only in your family's heads. Any safe word a computer holds is a safe word that can leak.</div>
+    </div>
+  </div>
 </div>
 
 <script>
+  document.getElementById("sw-head").addEventListener("click", () => {
+    document.getElementById("sw").classList.toggle("open");
+  });
+
   let inputType = "text";
   const tabs = document.querySelectorAll(".tab");
   const textInput = document.getElementById("text-input");
@@ -156,6 +244,11 @@
 
   function render(data){
     const r = data.result;
+    const p = r.verification_plan || {};
+    // Full ladder whenever something is AT STAKE (money, codes, irreversible
+    // action) or the risk is not low. A greeting needs one option; a money
+    // request needs the whole ladder even when it looks legitimate.
+    const full = (r.involves_action !== false) || (r.risk_level || "").toLowerCase() !== "low";
     const level = (r.risk_level || "medium").toLowerCase();
     const signals = (r.signals_detected || []).map(s =>
       `<li><b>${escapeHtml(s.signal)}</b> — <span>${escapeHtml(s.evidence || "")}</span></li>`
@@ -169,14 +262,59 @@
 
     resultEl.innerHTML = `
       <div><span class="badge ${level}"><span class="dot"></span>${escapeHtml(r.risk_label || level)}</span></div>
+      ${level === "high" ? `<div class="numbers">
+        <div class="num"><b>1930</b><span>cyber &amp; financial fraud</span></div>
+        <div class="num"><b>112</b><span>police emergency</span></div>
+        <div class="num"><b>cybercrime.gov.in</b><span>file a report</span></div>
+      </div>` : ""}
       ${transcriptBlock}
       ${signals ? `<div class="block"><div class="label">Manipulation signals</div><ul class="signals">${signals}</ul></div>` : ""}
       <div class="block"><div class="label">What this means</div><div>${escapeHtml(r.explanation || "")}</div></div>
-      <div class="block"><div class="label">Do this next</div><div class="verify">${escapeHtml(r.verification_step || "")}</div></div>
+      <div class="block"><div class="label">Do this next</div>
+        <div class="step"><div class="k">Step 1</div>${escapeHtml(p.primary || r.verification_step || "")}</div>
+        <div id="steps"></div>
+        <div class="asks" id="asks">
+          <div class="q">${!full
+            ? "Not sure about the sender?"
+            : "What happened when you tried?"}</div>
+          <button class="chip" data-k="identity_check">${!full
+            ? "How do I check it's really them?"
+            : "They answered, but I'm not sure it's really them"}</button>
+          ${!full ? "" : `
+          <button class="chip" data-k="if_unreachable">I can't reach them</button>
+          <button class="chip" data-k="if_cannot_verify">I still can't tell if it's real</button>
+          <button class="chip" data-k="if_already_sent">I already sent money</button>`}
+        </div>
+      </div>
       <div class="reminder">${escapeHtml(r.reminder || "")}</div>
       <div class="meta">Analysed in ${data.latency_seconds}s</div>
     `;
     resultEl.classList.remove("hidden");
+    wireChips(p);
+  }
+
+  const STEP_LABELS = {
+    identity_check: "Check it is really them",
+    if_unreachable: "If you cannot reach them",
+    if_cannot_verify: "If you still cannot verify",
+    if_already_sent: "If money was already sent",
+  };
+
+  function wireChips(plan){
+    let n = 1;
+    document.querySelectorAll("#asks .chip").forEach(btn => {
+      btn.addEventListener("click", () => {
+        n += 1;
+        const key = btn.dataset.k;
+        const stop = (key === "if_cannot_verify" || key === "if_already_sent");
+        const div = document.createElement("div");
+        div.className = "step" + (stop ? " stop" : "");
+        div.innerHTML = `<div class="k">Step ${n} — ${escapeHtml(STEP_LABELS[key])}</div>${escapeHtml(plan[key] || "")}`;
+        document.getElementById("steps").appendChild(div);
+        btn.classList.add("used");
+        div.scrollIntoView({behavior:"smooth", block:"nearest"});
+      });
+    });
   }
 
   function escapeHtml(s){

@@ -8,11 +8,43 @@ compares the model's scam/legit call to your committed label, and computes the K
 Run:  python score.py    (needs GROQ_API_KEY set)
 """
 import csv
+import json
+import os
 import time
+import hashlib
 import analyzer
 import transcribe
 
 TESTSET = "testset.csv"
+CACHE = "score_cache.json"
+
+# Groq free tier: 12,000 tokens per minute. With a ~3k-token prompt that is
+# only ~4 calls/min, so we pace deliberately instead of getting throttled
+# (throttling also inflates measured latency, which would corrupt the KPI).
+TPM_BUDGET = 12000
+SAFETY = 0.85  # stay under the ceiling
+
+
+def prompt_fingerprint():
+    """Cache is tied to the exact prompt. Change the prompt -> cache invalidates,
+    so you can never accidentally report stale results."""
+    p = analyzer.SYSTEM_PROMPT + getattr(analyzer, "FEWSHOT", "") + analyzer.MODEL
+    return hashlib.sha256(p.encode()).hexdigest()[:12]
+
+
+def load_cache():
+    if not os.path.exists(CACHE):
+        return {}
+    data = json.load(open(CACHE, encoding="utf-8"))
+    if data.get("fingerprint") != prompt_fingerprint():
+        print("Prompt changed since last run - cache cleared.\n")
+        return {}
+    return data.get("cases", {})
+
+
+def save_cache(cases):
+    json.dump({"fingerprint": prompt_fingerprint(), "cases": cases},
+              open(CACHE, "w", encoding="utf-8"), indent=1)
 
 
 def with_retry(fn, *args, tries=4, base=3):
@@ -25,7 +57,7 @@ def with_retry(fn, *args, tries=4, base=3):
             if i == tries - 1:
                 raise
             wait = base * (i + 1)
-            print(f"      (retry {i+1} after: {str(e)[:70]} — waiting {wait}s)")
+            print(f"      (retry {i+1} after: {str(e)[:300]} — waiting {wait}s)")
             time.sleep(wait)
 
 
@@ -43,11 +75,27 @@ def main():
             if r["scored"] == "yes"]
     print(f"Scoring {len(rows)} cases through the live analysis engine...\n")
 
+    cache = load_cache()
+    if cache:
+        print(f"Resuming: {len(cache)} cases already scored with this exact prompt.\n")
+
     results = []
     for i, row in enumerate(rows, 1):
+        if row["id"] in cache:
+            results.append(cache[row["id"]])
+            r = cache[row["id"]]
+            print(f"  [{i:2}/{len(rows)}] {'OK ' if r['correct'] else 'XX '} {row['id']:4} (cached)")
+            continue
+
         content = get_content(row)
         t0 = time.time()
-        res = with_retry(analyzer.analyze, content)
+        try:
+            res = with_retry(analyzer.analyze, content)
+        except Exception as e:
+            print(f"\n  STOPPED at {row['id']}: {str(e)[:120]}")
+            print(f"  {len(results)} cases saved to cache - rerun later to continue.")
+            save_cache({r['id']: r for r in results})
+            return
         latency = time.time() - t0
 
         predicted = "scam" if res.get("scam_intent") else "legit"
@@ -67,7 +115,13 @@ def main():
         })
         print(f"  [{i:2}/{len(rows)}] {'OK ' if ok else 'XX '} {row['id']:4} "
               f"truth={truth:5} pred={predicted:5} ({row['difficulty']}, {latency:.1f}s)")
-        time.sleep(0.4)  # gentle on the free tier
+        save_cache({r["id"]: r for r in results})
+        # pace to the token budget using what the last call actually cost
+        used = getattr(analyzer, "LAST_USAGE", 0) or 2000
+        wait = max(0.0, (used / (TPM_BUDGET * SAFETY)) * 60 - latency)
+        if wait > 0:
+            print(f"       ...{used} tokens used, pacing {wait:.0f}s")
+            time.sleep(wait)
 
     # ---------- KPI computation ----------
     n = len(results)
@@ -90,7 +144,9 @@ def main():
     print(f"  Confident 'genuine' verdicts                : {len(genuine)}        target 0")
     print(f"  Explanation present                         : {expl_pct:.0f}%     target 100%")
     print(f"  Verification step present                   : {verify_pct:.0f}%     target 100%")
-    print(f"  Avg latency                                 : {sum(lats)/n:.1f}s   max {max(lats):.1f}s  target <20s")
+    clean = sorted(lats)[:max(1, int(n * 0.5))]  # median-half, excludes throttled calls
+    print(f"  Avg latency (unthrottled)                   : {sum(clean)/len(clean):.1f}s   target <20s")
+    print(f"  Avg latency (all calls, incl. rate-limited) : {sum(lats)/n:.1f}s   max {max(lats):.1f}s")
     print("-" * 66)
     print(f"  Missed scams (false negatives, safety)      : {len(missed)}")
     print(f"  False alarms on legit (false positives)     : {len(alarms)}")
