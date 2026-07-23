@@ -8,6 +8,7 @@ compares the model's scam/legit call to your committed label, and computes the K
 Run:  python score.py    (needs GROQ_API_KEY set)
 """
 import csv
+import sys
 import json
 import os
 import time
@@ -15,8 +16,11 @@ import hashlib
 import analyzer
 import transcribe
 
-TESTSET = "testset.csv"
-CACHE = "score_cache.json"
+# Which set to score. Defaults to the committed set; pass a filename to score
+# another, e.g.  python score.py adversarial_set.csv
+TESTSET = sys.argv[1] if len(sys.argv) > 1 else "testset.csv"
+# Cache is named after the set, so the two never mix.
+CACHE = TESTSET.replace(".csv", "") + "_cache.json"
 
 # Groq free tier: 12,000 tokens per minute. With a ~3k-token prompt that is
 # only ~4 calls/min, so we pace deliberately instead of getting throttled
@@ -57,7 +61,7 @@ def with_retry(fn, *args, tries=4, base=3):
             if i == tries - 1:
                 raise
             wait = base * (i + 1)
-            print(f"      (retry {i+1} after: {str(e)[:300]} — waiting {wait}s)")
+            print(f"      (retry {i+1} after: {str(e)[:70]} — waiting {wait}s)")
             time.sleep(wait)
 
 
@@ -73,7 +77,7 @@ def get_content(row):
 def main():
     rows = [r for r in csv.DictReader(open(TESTSET, encoding="utf-8"))
             if r["scored"] == "yes"]
-    print(f"Scoring {len(rows)} cases through the live analysis engine...\n")
+    print(f"Scoring {len(rows)} cases from {TESTSET} through the live analysis engine...\n")
 
     cache = load_cache()
     if cache:
@@ -104,7 +108,8 @@ def main():
         results.append({
             "id": row["id"], "input_type": row["input_type"],
             "truth": truth, "predicted": predicted, "correct": ok,
-            "difficulty": row["difficulty"], "signal_family": row["signal_family"],
+            "difficulty": row["difficulty"],
+            "signal_family": row.get("signal_family") or row.get("attack_target", ""),
             "risk_level": res.get("risk_level"),
             "has_explanation": bool(res.get("explanation")),
             "has_verify": bool(res.get("verification_step")),
@@ -165,11 +170,12 @@ def main():
             kind = "MISSED SCAM" if r["truth"] == "scam" else "false alarm"
             print(f"  {r['id']:4} {kind:12} ({r['difficulty']}, {r['signal_family']})")
 
-    with open("scored_results.csv", "w", newline="", encoding="utf-8") as f:
+    outfile = TESTSET.replace(".csv", "") + "_results.csv"
+    with open(outfile, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=list(results[0].keys()))
         w.writeheader()
         w.writerows(results)
-    print("\nFull per-case results saved to scored_results.csv")
+    print(f"\nFull per-case results saved to {outfile}")
 
 
 if __name__ == "__main__":
