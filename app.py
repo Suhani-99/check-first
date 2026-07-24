@@ -21,11 +21,32 @@ app = FastAPI(title="Scam & Manipulation Shield")
 db.init_db()
 
 
+def _page(name: str) -> str:
+    # Read fresh each request so pages can be edited without restarting.
+    with open(f"static/{name}", encoding="utf-8") as f:
+        return f.read()
+
+
 @app.get("/", response_class=HTMLResponse)
 def home():
-    # Read fresh each request so you can edit the page without restarting.
-    with open("static/index.html", encoding="utf-8") as f:
-        return f.read()
+    return _page("index.html")
+
+
+@app.get("/how", response_class=HTMLResponse)
+def how_it_works():
+    return _page("how.html")
+
+
+@app.get("/measure", response_class=HTMLResponse)
+def how_we_measure():
+    return _page("measure.html")
+
+
+@app.get("/static/style.css")
+def stylesheet():
+    from fastapi.responses import Response
+    with open("static/style.css", encoding="utf-8") as f:
+        return Response(f.read(), media_type="text/css")
 
 
 @app.post("/analyze")
@@ -61,18 +82,57 @@ async def analyze_endpoint(
                 status_code=400,
             )
 
-    # 2) Analyse (same brain the scoring script uses).
-    result = analyzer.analyze(content)
+    # 2) Analyse. Text uses single-message analysis (this is what the committed
+    #    evaluation measures). Transcribed audio/video is auto-routed: a long
+    #    back-and-forth call recording gets conversation-aware analysis.
+    result = analyzer.analyze(content) if input_type == "text" else analyzer.analyze_auto(content)
     latency = round(time.time() - t0, 2)
 
-    # 3) Log it.
-    db.log_analysis(input_type, content, result, latency)
+    # 3) Log it and open a session so follow-up turns attach to this case.
+    session_id = db.log_analysis(input_type, content, result, latency)
 
     # 4) Respond. `content` is returned so the UI can show what was transcribed.
-    return {"content": content, "result": result, "latency_seconds": latency}
+    return {"content": content, "result": result,
+            "latency_seconds": latency, "session_id": session_id}
+
+
+@app.post("/followup")
+async def followup_endpoint(
+    original: str = Form(...),
+    prior_label: str = Form(""),
+    prior_explanation: str = Form(""),
+    history: str = Form(""),
+    message: str = Form(...),
+    session_id: str = Form(""),
+):
+    """One turn of live guidance while the situation is still unfolding."""
+    t0 = time.time()
+    turns = []
+    for line in (history or "").split("|||"):
+        if line.startswith("u:"):
+            turns.append({"role": "user", "text": line[2:]})
+        elif line.startswith("a:"):
+            turns.append({"role": "assistant", "text": line[2:]})
+
+    out = analyzer.followup(
+        original,
+        {"risk_label": prior_label, "explanation": prior_explanation},
+        turns,
+        message.strip(),
+    )
+    latency = round(time.time() - t0, 2)
+    if session_id:
+        db.log_followup(session_id, len(turns) + 1, message.strip(), out, latency)
+    return {"result": out, "latency_seconds": latency}
 
 
 @app.get("/history")
 def history():
-    """Recent analyses — handy for the demo."""
+    """Recent analyses with their follow-up threads — the audit trail."""
     return db.recent()
+
+
+@app.get("/stats")
+def stats():
+    """Aggregate counts, including which database backend is live."""
+    return db.stats()

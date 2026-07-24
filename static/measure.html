@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#14171B">
+<title>How we measure — Check First</title>
+<meta name="description" content="Our accuracy, our failure rate, and the cases we get wrong. A safety tool that hides its own numbers is asking for trust it has not earned.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a class="brand" href="/"><span class="glyph"></span>Check First</a>
+    <a class="link" href="/">Check a message</a>
+    <a class="link" href="/how">How it works</a>
+    <a class="link" href="/measure" aria-current="page">How we measure</a>
+  </div>
+</nav>
+
+
+<main class="page narrow">
+  <h1 class="title">How we measure.</h1>
+  <p class="lede">A safety tool that hides its own failure rate is asking for trust it has not earned. So here are our numbers, including the ones that make us look worse.</p>
+
+  <h2 class="head">Two sets, on purpose</h2>
+  <div class="grid2">
+    <div class="stat set-a">
+      <div class="big">100%</div>
+      <div class="cap"><strong>Committed set — 40 cases.</strong> Written and locked into version control before any tuning, so the labels could not be adjusted to flatter the result. 20 scams, 20 ordinary messages.</div>
+    </div>
+    <div class="stat set-b">
+      <div class="big">70%</div>
+      <div class="cap"><strong>Adversarial set — 20 cases.</strong> Written afterwards, specifically to break the system. Real fraud patterns from people who receive these calls, plus deliberate attacks on our own assumptions.</div>
+    </div>
+  </div>
+  <p class="body" style="margin-top:22px">The first number alone would be misleading. Scoring full marks means a test set has stopped teaching you anything — so we built a harder one and published what it did to us.</p>
+
+  <h2 class="head">Against the targets</h2>
+  <table class="kpi">
+    <thead><tr><th>What we measure</th><th>Target</th><th>Actual</th><th>How</th></tr></thead>
+    <tbody>
+      <tr><td>Input types handled</td><td class="num">≥3</td><td class="num met">3</td><td class="how">Text, voice and video, all through one pipeline</td></tr>
+      <tr><td>Scam-intent accuracy</td><td class="num">≥85%</td><td class="num met">100%</td><td class="how">40 committed cases, scored by an automated script against labels locked in beforehand</td></tr>
+      <tr><td>Accuracy under attack</td><td class="num">—</td><td class="num">70%</td><td class="how">20 adversarial cases built to exploit our assumptions</td></tr>
+      <tr><td>False reassurances</td><td class="num">0</td><td class="num met">0</td><td class="how">Guardrail removes any sentence certifying a message as real, checked on every result</td></tr>
+      <tr><td>Plain-language explanation</td><td class="num">100%</td><td class="num met">100%</td><td class="how">Present on every result; wording reviewed by non-technical readers</td></tr>
+      <tr><td>A way to verify</td><td class="num">100%</td><td class="num met">100%</td><td class="how">Enforced in code — a result cannot be returned without one</td></tr>
+      <tr><td>Time to answer</td><td class="num">&lt;20s</td><td class="num met">~1.1s</td><td class="how">Median across a full unthrottled scoring run</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="head">The six it got wrong</h2>
+  <p class="body">All six failures came from the adversarial set. Every one is instructive, and three of them are not really fixable — they are the honest edge of what reading a single message can do.</p>
+  <ul class="fails">
+    <li><span class="id">A surprise gift</span><span class="kind">false alarm</span>
+      <p>“Don't tell mum, I'm getting her an anniversary present — can you send me 3,000?” Real secrecy, real urgency, real money, and completely innocent. Families keep harmless secrets, and our rules cannot always tell those from the dangerous kind.</p></li>
+    <li><span class="id">A legitimate code request</span><span class="kind">false alarm</span>
+      <p>A car was sold but still registered in the seller's name, so the buyer genuinely needed a code to renew insurance. We flag every request for a code, deliberately. We would rather be wrong here than teach anyone that sharing one is ever fine.</p></li>
+    <li><span class="id">The broken phone</span><span class="kind">false alarm — and correct</span>
+      <p>“My phone died in the rain, I'm on a shopkeeper's phone, send 10,000 to his account.” Unknown number, urgency, a stranger's payment details — every red flag, and entirely real. We flag it, and we think that is right: the plan then asks for the family safe word, which the real person answers in seconds and a scammer cannot.</p></li>
+    <li><span class="id">A courtesy call</span><span class="kind">missed</span>
+      <p>“Just confirming you know your deposit matures on the 14th. No action needed.” The opening move of a longer con, and it asks for nothing at all. Reading one message, there is nothing yet to catch.</p></li>
+    <li><span class="id">A neighbour in need</span><span class="kind">missed</span>
+      <p>“Aunty from B-wing here, my son's away, could you help me with 2,000?” Friendly, small, plausible, no urgency and no payment route named.</p></li>
+    <li><span class="id">Getting back in touch</span><span class="kind">missed</span>
+      <p>“I know we haven't spoken in years, but I'm in a bad spot. Can we talk?” From a hacked account. No money mentioned — that comes after you reply.</p></li>
+  </ul>
+
+  <h2 class="head">What the failures have in common</h2>
+  <p class="body">Read together they say something uncomfortable and important: <strong>our signals are neither necessary nor sufficient.</strong> A completely legitimate message can carry every red flag we look for. A real scam can carry none of them. No amount of tuning fixes that, because it is not a tuning problem — it is the limit of judging a single message by its contents.</p>
+  <p class="body">Which is the argument for the whole design. If detection cannot be made reliable, a product that <em>depends</em> on detection cannot be made safe. Ours does not depend on it. It reads what it can, tells you what it saw, and always hands you a way to find out for yourself.</p>
+
+  <div class="note"><strong>How these numbers were produced.</strong> A script runs every case through the same code the live site uses — not a separate test version — and compares the verdict against labels committed to version control beforehand. The committed set was timestamped before any tuning began, so it cannot have been adjusted to match the results.</div>
+
+  <a class="cta" href="/">Check a message →</a>
+</main>
+
+<footer class="foot-site">
+  <div class="in">
+    <span>Check First — it never tells you a message is genuine.</span>
+    <span>1930 · 112 · cybercrime.gov.in</span>
+  </div>
+</footer>
+</body>
+</html>

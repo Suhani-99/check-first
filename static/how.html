@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#14171B">
+<title>How Check First works</title>
+<meta name="description" content="What happens to a message you paste, why everything becomes text, and why this tool will never tell you something is genuine.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a class="brand" href="/"><span class="glyph"></span>Check First</a>
+    <a class="link" href="/">Check a message</a>
+    <a class="link" href="/how" aria-current="page">How it works</a>
+    <a class="link" href="/measure">How we measure</a>
+  </div>
+</nav>
+
+
+<main class="page narrow">
+  <h1 class="title">How it works.</h1>
+  <p class="lede">This page exists because a safety tool you cannot inspect is a safety tool you should not trust. Here is exactly what happens to a message, and what the system can and cannot do.</p>
+
+  <h2 class="head">The one decision everything else follows from</h2>
+  <p class="body">Deepfake detectors do well on the fakes they were trained on and poorly on new ones. Research through 2026 puts the real-world drop at ten to fifteen points, with no meaningful ability to catch fakes made by tools the detector has never seen. Every new generator makes them blind again.</p>
+  <p class="body">So <strong>Check First does not try to tell you whether media is real.</strong> If it did, it would eventually tell a frightened parent that a scam was genuine — and a wrong reassurance is the one mistake that costs someone their savings. There is no "authentic" verdict anywhere in this system. It is not disabled; it does not exist.</p>
+  <p class="body">What it does instead is read the <strong>pressure inside the message</strong> — the manipulation, not the pixels — and hand you a way to check for yourself. That approach keeps working when the next generator arrives, because it never depended on detection.</p>
+
+  <div class="note warn"><strong>The asymmetry we design around.</strong> A false alarm costs you one phone call. A false reassurance costs you everything you send. Those are not equal, so the system is deliberately built to fail toward caution.</div>
+
+  <h2 class="head">What happens to your message</h2>
+  <ol class="flow">
+    <li><b>It arrives as text, voice or video</b><span>All three go to one place. A voice note is transcribed. A video has its audio track pulled out and transcribed too. After this step everything is text — which is why the same reasoning works across all three.</span></li>
+    <li><b>Why text is the right surface</b><span>What actually hurts a family is not that a waveform has an artifact. It is that someone is pressured into sending money. That pressure lives in the words, and it survives transcription completely.</span></li>
+    <li><b>A language model reads it for pressure</b><span>It looks for a cluster: urgency, a demand for secrecy, a payment route that does not fit, someone claiming to be a bank or the police, a request for a code, threats, or anything designed to stop you checking. It must quote the exact words for each — it is not allowed to infer a signal that is not there.</span></li>
+    <li><b>Urgency alone is not enough</b><span>A real emergency is urgent and blunt too. A verdict requires a genuine red flag beyond urgency, because a tool that flags every worried message is a tool families learn to ignore.</span></li>
+    <li><b>A guardrail checks the answer before you see it</b><span>Separate code, not a request in a prompt. If the model ever writes that something looks genuine or authentic, that sentence is removed and replaced. It also guarantees every single result carries a way to verify.</span></li>
+    <li><b>You get a plan, not a score</b><span>What to do first, how to confirm it really is them, what to do if you cannot reach them, what to do when you still cannot tell — and what to do if the money has already gone.</span></li>
+  </ol>
+
+  <h2 class="head">Why the plan matters more than the verdict</h2>
+  <p class="body">A real emergency and a scam can read identically. Someone in genuine trouble is panicked, blunt and asking for money — exactly like a scammer pretending to be them. No system can reliably separate those from the words alone, and one that claims to is lying to you.</p>
+  <p class="body">So Check First does not try. It gives you the action that is <strong>correct either way</strong>: reach the real person through a channel the sender does not control. If it is really them, you lose thirty seconds. If it is not, you keep your money. The same step resolves both, which is why the tool never needs to know which one it is.</p>
+  <p class="body">And if you cannot verify at all, that is not a reason to go ahead. It is the strongest warning there is. The hurry exists precisely to stop you checking.</p>
+
+  <h2 class="head">Where it is blind</h2>
+  <p class="body">Check First reads one message at a time. The most common fraud today does not arrive in one message — a caller opens with details about you they bought from a data leak, builds trust over several calls, and only asks for money at the very end. Judged alone, that first call has no red flags in it, because there aren't any yet.</p>
+  <p class="body">It also cannot see a message that has not reached you, cannot recover money already sent, and is only as good as its transcription on poor-quality audio. <a href="/measure" style="color:var(--ink)">The numbers, including where it fails →</a></p>
+
+  <h2 class="head">What we do not keep</h2>
+  <p class="body">Your family safe word is never typed here, never sent anywhere and never stored. It should exist only in your family's heads — a safe word a computer holds is a safe word that can leak.</p>
+
+  <a class="cta" href="/">Check a message →</a>
+</main>
+
+<footer class="foot-site">
+  <div class="in">
+    <span>Check First — it never tells you a message is genuine.</span>
+    <span>1930 · 112 · cybercrime.gov.in</span>
+  </div>
+</footer>
+</body>
+</html>

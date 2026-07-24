@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+analyses.db
+score_cache.json
+adversarial_set_cache.json
+.env

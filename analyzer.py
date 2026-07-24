@@ -315,11 +315,17 @@ def guardrail(result: dict) -> dict:
     result.setdefault("explanation", "")
 
     if certifies_genuine(result):
+        # Do NOT merely prefix a disclaimer - the certifying sentence would still
+        # be sitting there for the user to read. Remove the offending sentences
+        # entirely and keep only what is safe to say.
+        kept = [s.strip() for s in re.split(r"(?<=[.!?])\s+", str(result.get("explanation", "")))
+                if s.strip() and not _field_certifies(s)]
         result["explanation"] = (
-            "This tool cannot confirm whether a message is real. "
-            + str(result.get("explanation", ""))
-        )
+            "This tool cannot confirm whether a message is real, so it is not "
+            "saying that here. " + " ".join(kept)
+        ).strip()
         result["risk_label"] = "cannot be confirmed - verify with a human"
+        result["certification_stripped"] = True
 
     if not result.get("verification_step"):
         result["verification_step"] = (
@@ -356,3 +362,209 @@ def guardrail(result: dict) -> dict:
         "real person through a channel you already trust."
     )
     return result
+
+# ---------------------------------------------------------------------------
+# CONVERSATION MODE
+#
+# Real fraud rarely arrives as one message. The dominant pattern (confirmed by
+# people who receive these calls daily) is a SEQUENCE: the caller opens with
+# leaked personal data to establish credibility, builds rapport over several
+# turns, and only asks for money or an OTP at the very end.
+#
+# Single-message analysis is structurally blind to this: turn 1 asks for nothing,
+# so it has no signals. This addendum is appended ONLY when analysing a
+# conversation, so single-message behaviour - and therefore the committed
+# evaluation - is completely unchanged.
+# ---------------------------------------------------------------------------
+CONVERSATION_ADDENDUM = """
+
+=== YOU ARE NOW ANALYSING A CONVERSATION, NOT ONE MESSAGE ===
+You are given a numbered sequence of turns. Judge the ARC, not any single turn.
+
+Conversational fraud signals (these appear ACROSS turns, never within one):
+  - UNEXPLAINED KNOWLEDGE: the sender knows private details - a maturing deposit,
+    a recent property enquiry, a purchase - that they have no legitimate reason
+    to hold. A real bank does not cold-call to recite what is already in its own
+    records. Leaked or purchased data is how the credibility is manufactured.
+  - RAPPORT BEFORE THE ASK: early turns request nothing at all. They exist to
+    establish trust and to get you talking.
+  - ESCALATING COMMITMENT: each turn asks slightly more than the last - first
+    attention, then confirmation of a detail, then a small action, then money
+    or a code.
+  - THE ASK ARRIVES LATE: the payment, OTP or credential request appears only in
+    the final turns, after trust is built. Its absence early is not reassurance.
+  - MANUFACTURED CONTINUITY: "as I mentioned", "the case we discussed", implying
+    a shared history that the recipient cannot actually verify.
+  - CHANNEL PULL: pushing the conversation to WhatsApp, a personal number, or a
+    call, away from anywhere it can be checked or recorded.
+
+Important: a conversation can be a scam even if NO SINGLE TURN would be flagged
+on its own. That is the whole point of this mode. If the arc shows manufactured
+credibility followed by escalation, set scam_intent = true and say which TURN
+each signal came from.
+
+For signals_detected, quote the turn number with the evidence, e.g.
+{"signal": "unexplained knowledge", "evidence": "turn 1: knows her FD matures on the 14th"}.
+"""
+
+
+def analyze_conversation(turns: list) -> dict:
+    """Assess a SEQUENCE of messages as one conversation.
+
+    turns: list of strings, oldest first. Returns the same structure as
+    analyze(), so the API, guardrail and UI need no special handling.
+    """
+    global LAST_USAGE
+    transcript = "\n".join(f"Turn {i}: {t.strip()}" for i, t in enumerate(turns, 1) if t.strip())
+
+    resp = _client.chat.completions.create(
+        model=MODEL,
+        temperature=0,
+        response_format={"type": "json_object"},
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT + FEWSHOT + CONVERSATION_ADDENDUM},
+            {"role": "user", "content": f"Conversation to assess:\n\n{transcript}"},
+        ],
+    )
+    try:
+        LAST_USAGE = int(resp.usage.total_tokens)
+    except Exception:
+        LAST_USAGE = 0
+    try:
+        result = json.loads(resp.choices[0].message.content)
+    except (json.JSONDecodeError, TypeError):
+        result = {
+            "scam_intent": True, "involves_action": True, "risk_level": "medium",
+            "risk_label": "could not fully analyse - treat with caution",
+            "signals_detected": [],
+            "explanation": "The system could not fully analyse this conversation, "
+                           "so it is flagging it for caution rather than assuming it is fine.",
+            "verification_step": "",
+        }
+    result["mode"] = "conversation"
+    result["turn_count"] = len([t for t in turns if t.strip()])
+    return guardrail(result)
+
+# ---------------------------------------------------------------------------
+# LIVE FOLLOW-UP
+#
+# The realistic situation: the person is ON the call right now. They describe
+# what is being said, turn by turn, and get guidance as it unfolds. This is the
+# same engine, carrying the original analysis plus the running history as
+# context, so advice compounds instead of resetting.
+# ---------------------------------------------------------------------------
+FOLLOWUP_PROMPT = """You are the same scam and manipulation shield, now helping
+someone THROUGH a situation in real time. They have already had a message or call
+assessed, and are now telling you what is happening next.
+
+Reply the way a calm, well-informed relative would: short, plain, specific.
+2-4 sentences. No jargon, no headings, no bullet lists.
+
+Rules that never change:
+  - Never say a message, caller or person is genuine, authentic, real or safe.
+    You cannot know that.
+  - Never tell them to share an OTP, code, PIN or password with anyone, for any
+    reason. There is no legitimate exception.
+  - If they cannot verify, that is not a reason to proceed - say so plainly.
+  - If they say money has already gone, tell them to call 1930 immediately and
+    their bank's fraud line, and file at cybercrime.gov.in. Speed decides recovery.
+  - If new information makes things clearly worse (an OTP is now being asked for,
+    they are told not to hang up, a new account appears, secrecy is demanded),
+    say so directly and tell them to end the call.
+
+NEVER tell them to search online for an official phone number or address.
+Scammers buy search placement for fake "police", "bank" and "helpline" numbers,
+so searching is how people reach a second scammer. Instead route them to a
+number that cannot be faked: 112 (police emergency), 1930 (cyber fraud), the
+number printed on the back of their own card, or walking into any police station
+in person. If you do not know a local address, say that dialling 112 will connect
+them and direct them - do not leave them to look it up.
+
+Never answer with "I don't have that information" and stop there. Always give
+the action that works regardless of location.
+
+Specific facts you should state plainly when relevant:
+  - There is no such thing as a "digital arrest". No Indian police force, court,
+    CBI, ED or customs officer conducts arrests, interrogations or case
+    verification over a phone or video call. If someone is doing that, the case
+    does not exist.
+  - Police and courts never take bail, fines or fees by UPI, gift card or
+    transfer to a personal account. Bail is set by a court, in person.
+  - A real summons arrives in writing, and you can walk into a station to check it.
+
+Watch for conversational fraud across what they tell you: knowing private details
+they should not know, building rapport before asking for anything, escalating
+requests, pushing to another channel, and the real ask arriving only at the end.
+
+Return ONLY valid JSON:
+{
+  "reply": "your 2-4 sentence answer to them",
+  "risk_direction": "worse" or "same" or "clearer",
+  "urgent": true or false
+}
+urgent = true only when they should stop and end the call right now, or when
+money has already been sent.
+"""
+
+
+def _looks_like_conversation(text: str) -> bool:
+    """Heuristic: is this transcript a back-and-forth rather than one message?
+
+    Used to route long call recordings to conversation-aware analysis without
+    asking the user to categorise their own input.
+    """
+    t = text.strip()
+    if len(t.split()) > 90:
+        return True
+    markers = ("hello?", "yes ma'am", "yes sir", "hold on", "one moment",
+               "as i said", "as i mentioned", "speaking", "who is this")
+    hits = sum(1 for m in markers if m in t.lower())
+    return hits >= 2
+
+
+def analyze_auto(text: str) -> dict:
+    """Route to single-message or conversation analysis automatically."""
+    if _looks_like_conversation(text):
+        return analyze_conversation([text])
+    return analyze(text)
+
+
+def followup(original: str, prior: dict, history: list, message: str) -> dict:
+    """One turn of live guidance. history = [{'role':'user'|'assistant','text':...}]"""
+    global LAST_USAGE
+    convo = "\n".join(
+        f"{'They asked' if h['role']=='user' else 'You said'}: {h['text']}"
+        for h in history[-8:]
+    )
+    context = (
+        f"The message originally assessed was:\n{original[:1200]}\n\n"
+        f"Your assessment was: {prior.get('risk_label','')} - "
+        f"{prior.get('explanation','')}\n\n"
+        + (f"So far in this conversation:\n{convo}\n\n" if convo else "")
+        + f"They now say:\n{message}"
+    )
+    resp = _client.chat.completions.create(
+        model=MODEL, temperature=0.2,
+        response_format={"type": "json_object"},
+        messages=[{"role": "system", "content": FOLLOWUP_PROMPT},
+                  {"role": "user", "content": context}],
+    )
+    try:
+        LAST_USAGE = int(resp.usage.total_tokens)
+    except Exception:
+        LAST_USAGE = 0
+    try:
+        out = json.loads(resp.choices[0].message.content)
+    except (json.JSONDecodeError, TypeError):
+        out = {"reply": "I could not process that. If you are unsure, do not send "
+                        "money or share any code - end the call and check independently.",
+               "risk_direction": "same", "urgent": False}
+
+    # same guardrail discipline applies to live advice
+    if _field_certifies(str(out.get("reply", ""))):
+        out["reply"] = ("I cannot tell you this is real - that is not something I can "
+                        "confirm. Verify independently before doing anything, and do "
+                        "not share any code.")
+    out.setdefault("risk_direction", "same")
+    out.setdefault("urgent", False)
+    return out
