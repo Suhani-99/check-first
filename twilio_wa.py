@@ -31,7 +31,10 @@ from whatsapp import format_result, WELCOME, _is_followup
 
 SID = os.environ.get("TWILIO_ACCOUNT_SID", "")
 AUTH = os.environ.get("TWILIO_AUTH_TOKEN", "")
-FROM = os.environ.get("TWILIO_WHATSAPP_FROM", "whatsapp:+14155238886")
+_raw_from = os.environ.get("TWILIO_WHATSAPP_FROM", "+14155238886").strip()
+# Twilio rejects the send unless BOTH From and To carry the channel prefix.
+# Normalise here so a missing "whatsapp:" in configuration cannot break sending.
+FROM = _raw_from if _raw_from.startswith("whatsapp:") else f"whatsapp:{_raw_from}"
 
 API = "https://api.twilio.com/2010-04-01"
 MAX_BODY = 1500          # Twilio hard limit is 1600; leave headroom
