@@ -100,7 +100,7 @@
         <span>"What's our safe word?" A copied voice can sound exactly like your child. It cannot know a word that was never spoken online.</span></div></div>
 
       <div class="sw-warn"><b>If they don't know it:</b> send nothing and share no codes, however convincing they sound. Hang up and ring the number already saved in your phone.</div>
-      <div class="sw-note">Shield does not store your safe word. It is never typed here, never sent anywhere, never saved on this device — it should live only in your family's heads. A safe word a computer holds is a safe word that can leak.</div>
+      <div class="sw-note">Check First does not store your safe word. It is never typed here, never sent anywhere, never saved on this device — it should live only in your family's heads. A safe word a computer holds is a safe word that can leak.</div>
     </div>
   </section>
 
@@ -204,7 +204,7 @@
 
     var heard = "";
     if (inputType !== "text" && data.content){
-      heard = '<div class="sec"><div class="lbl">What Shield heard</div>' +
+      heard = '<div class="sec"><div class="lbl">What we heard</div>' +
               '<blockquote>' + esc(data.content) + '</blockquote></div>';
     }
 
@@ -230,7 +230,7 @@
       '<p class="caveat">This is a reading of the pressure inside the message. It is not a ruling on whether the message is real.</p>' +
       lines +
       heard +
-      (sig ? '<div class="sec"><div class="lbl">What Shield noticed</div><ul class="sig">' + sig + '</ul></div>' : '') +
+      (sig ? '<div class="sec"><div class="lbl">What we noticed</div><ul class="sig">' + sig + '</ul></div>' : '') +
       '<div class="sec"><div class="lbl">What that means</div><p class="means">' + esc(r.explanation) + '</p></div>' +
 
       '<div class="plan">' +
@@ -246,10 +246,10 @@
       '</div>' +
 
       '<div class="chat">' +
-        '<div class="lbl">Still going on? Tell Shield what they\'re saying</div>' +
+        '<div class="lbl">Still going on? Tell Check First what they\'re saying</div>' +
         '<div class="bubbles" id="bubbles"></div>' +
         '<div class="askrow">' +
-          '<input id="ask" placeholder="e.g. he isn\'t picking up, or they want an OTP now" aria-label="Tell Shield what is happening">' +
+          '<input id="ask" placeholder="e.g. he isn\'t picking up, or they want an OTP now" aria-label="Tell us what is happening">' +
           '<button id="asksend">Send</button>' +
         '</div>' +
       '</div>' +
