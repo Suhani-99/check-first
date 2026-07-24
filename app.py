@@ -11,12 +11,13 @@ import shutil
 import tempfile
 import secrets
 
-from fastapi import FastAPI, Form, File, UploadFile, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, Form, File, UploadFile, HTTPException, Request, BackgroundTasks
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 
 import analyzer
 import transcribe
 import db
+import whatsapp
 
 app = FastAPI(title="Scam & Manipulation Shield")
 db.init_db()
@@ -160,7 +161,33 @@ def stats(token: str = ""):
     return db.stats()
 
 
+# ---------------------------------------------------------------------------
+# WhatsApp — a second front door onto the same pipeline.
+# GET  verifies ownership of the URL during setup.
+# POST receives message events. It returns 200 immediately and processes in the
+# background, because Meta retries any webhook that takes too long to respond —
+# and transcription plus analysis takes several seconds.
+# ---------------------------------------------------------------------------
+@app.get("/whatsapp")
+def whatsapp_verify(request: Request):
+    q = request.query_params
+    result = whatsapp.verify(q.get("hub.mode", ""), q.get("hub.verify_token", ""),
+                             q.get("hub.challenge", ""))
+    if result is None:
+        raise HTTPException(status_code=403, detail="Verification failed.")
+    return PlainTextResponse(str(result))
+
+
+@app.post("/whatsapp")
+async def whatsapp_webhook(request: Request, background: BackgroundTasks):
+    payload = await request.json()
+    background.add_task(whatsapp.handle_event, payload)
+    return {"status": "received"}
+
+
 @app.get("/healthz")
 def healthz():
     """Public liveness check — deliberately exposes no user data."""
-    return {"ok": True, "backend": "postgres" if db.IS_POSTGRES else "sqlite"}
+    return {"ok": True,
+            "backend": "postgres" if db.IS_POSTGRES else "sqlite",
+            "whatsapp": whatsapp.configured()}
