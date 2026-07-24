@@ -18,6 +18,7 @@ import analyzer
 import transcribe
 import db
 import whatsapp
+import twilio_wa
 
 app = FastAPI(title="Scam & Manipulation Shield")
 db.init_db()
@@ -185,9 +186,25 @@ async def whatsapp_webhook(request: Request, background: BackgroundTasks):
     return {"status": "received"}
 
 
+# ---------------------------------------------------------------------------
+# Twilio WhatsApp — second provider for the same channel.
+# Twilio POSTs form-encoded data and expects a fast response, so we acknowledge
+# with empty TwiML and process in the background.
+# ---------------------------------------------------------------------------
+@app.post("/twilio")
+async def twilio_webhook(request: Request, background: BackgroundTasks):
+    form = dict(await request.form())
+    background.add_task(twilio_wa.handle_message, form)
+    return PlainTextResponse(
+        '<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
+        media_type="application/xml",
+    )
+
+
 @app.get("/healthz")
 def healthz():
     """Public liveness check — deliberately exposes no user data."""
     return {"ok": True,
             "backend": "postgres" if db.IS_POSTGRES else "sqlite",
-            "whatsapp": whatsapp.configured()}
+            "whatsapp": whatsapp.configured(),
+            "twilio": twilio_wa.configured()}
