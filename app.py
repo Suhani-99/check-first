@@ -9,8 +9,9 @@ import os
 import time
 import shutil
 import tempfile
+import secrets
 
-from fastapi import FastAPI, Form, File, UploadFile
+from fastapi import FastAPI, Form, File, UploadFile, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 
 import analyzer
@@ -126,13 +127,40 @@ async def followup_endpoint(
     return {"result": out, "latency_seconds": latency}
 
 
+# ---------------------------------------------------------------------------
+# The audit trail contains the actual messages people asked us to check —
+# private family messages, by definition. It must not be readable by anyone
+# who guesses the URL. Access requires ADMIN_TOKEN, set as an environment
+# variable on the server and never committed.
+#
+# If ADMIN_TOKEN is not set, these endpoints are disabled entirely rather than
+# left open: failing closed is the only safe default for private data.
+# ---------------------------------------------------------------------------
+ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")
+
+
+def _require_admin(token: str):
+    if not ADMIN_TOKEN:
+        raise HTTPException(status_code=404, detail="Not found.")
+    if not secrets.compare_digest(token or "", ADMIN_TOKEN):
+        raise HTTPException(status_code=401, detail="Unauthorised.")
+
+
 @app.get("/history")
-def history():
+def history(token: str = ""):
     """Recent analyses with their follow-up threads — the audit trail."""
+    _require_admin(token)
     return db.recent()
 
 
 @app.get("/stats")
-def stats():
+def stats(token: str = ""):
     """Aggregate counts, including which database backend is live."""
+    _require_admin(token)
     return db.stats()
+
+
+@app.get("/healthz")
+def healthz():
+    """Public liveness check — deliberately exposes no user data."""
+    return {"ok": True, "backend": "postgres" if db.IS_POSTGRES else "sqlite"}

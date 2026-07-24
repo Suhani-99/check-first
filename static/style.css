@@ -322,10 +322,14 @@ table.kpi td.how{color:var(--slate); font-size:14px; line-height:1.5}
 /* ---------- tool layout ---------- */
 @media (min-width:1020px){
   .layout{display:grid; grid-template-columns:minmax(360px,430px) 1fr; gap:60px; align-items:start}
+  /* Sticky keeps the input visible while a long analysis scrolls. It must stay
+     inside the grid — anything after the grid is a normal block, so nothing
+     can be overlapped by it. */
   .col-a{position:sticky; top:86px}
   .col-b{min-width:0}
-  .sw{grid-column:1 / -1}
 }
+/* The safe-word panel sits AFTER the grid, full width, clear of the sticky column. */
+.sw{max-width:660px}
 @media (max-width:1019px){ .empty{display:none} }
 @media (max-width:640px){
   .page{padding:32px 16px 64px}
