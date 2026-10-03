@@ -3,5 +3,5 @@ uvicorn
 python-multipart
 groq
 sqlalchemy
-psycopg2-binary
+psycopg[binary]
 requests
