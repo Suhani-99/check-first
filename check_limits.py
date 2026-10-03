@@ -14,7 +14,7 @@ import os
 from groq import Groq
 
 client = Groq(api_key=os.environ["GROQ_API_KEY"])
-MODEL = "llama-3.3-70b-versatile"
+MODEL = "openai/gpt-oss-120be"
 
 resp = client.chat.completions.with_raw_response.create(
     model=MODEL,
